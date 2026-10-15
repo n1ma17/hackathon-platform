@@ -1,19 +1,28 @@
 import { Module } from '@nestjs/common';
-import { createObserveModule } from '@nestjs/observe';
+import { AuthModule } from '@thallesp/nestjs-better-auth';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
-
-export const { ObserveModule, ObserveInstrument } = createObserveModule();
+import { auth } from './auth.js';
+import { PrismaModule } from './lib/database/prisma.module.js';
+import { ObserveModule, observeEnabled } from './observe.js';
+import { UserModule } from './module/user/user.module.js';
+import { HackathonModule } from './module/hackathon/hackathon.module.js';
 
 @Module({
   imports: [
-    // Distributed tracing, auto-correlated logs, request/job metrics, error
-    // telemetry, alarms, and more — out of the box. Sign up at https://observe.nestjs.com
-    ObserveModule.forRoot({
-      appKey: 'YOUR_APP_KEY',
-      appSecret: 'YOUR_APP_SECRET',
-      serviceId: 'hackathon-platform',
-    }),
+    PrismaModule,
+    AuthModule.forRoot({ auth }),
+    ...(observeEnabled
+      ? [
+          ObserveModule.forRoot({
+            appKey: process.env.OBSERVE_APP_KEY!,
+            appSecret: process.env.OBSERVE_APP_SECRET!,
+            serviceId: process.env.OBSERVE_SERVICE_ID ?? 'hackathon-platform',
+          }),
+        ]
+      : []),
+    UserModule,
+    HackathonModule,
   ],
   controllers: [AppController],
   providers: [AppService],
